@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+        body {
+                background-color: #bbbbbb;
+            }
+        canvas 
+        {
+            border:5px solid #006699;
+            background-color: #f1f1f1;
+        }
+
+         #canvas-div 
+        {
+ 
+            width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body onload="loadGame()">
+
+<script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+
+ <!-- Support classes -->
+<script src="Scripts\StateManager.js"></script>
+<script src="Scripts\BasicUI.js"></script>
+<script src="Scripts\Utility.js"></script>
+
+<!-- Core class  -->
+<script src="Scripts\MainScript.js"></script>
+
+
+
+<script src="Scripts\States.js"></script>
+<script src="Scripts\Solver.js"></script>
+
+<span style="display:none;">
+    <img id="sudokuImage" src="Content\BG.png" onload="OnImageLoaded();">
+</span>
+
+
+<div id="canvas-container">
+    <div id="canvas-div">
+        <canvas id="canvas-game"></canvas>
+    </div>
+    
+</div>
+
+
+</body>
+</html>
