@@ -13,7 +13,7 @@ function Box ()
     this.possibleSolutions = [];
 
     this.getBoxWithIndexDelegate = null;
-
+	this.isSetBySolver = false;
 
 
 	this.Init = function ( r, c, index, quadrant, delegateToFetchOtherBoxes )
@@ -41,7 +41,8 @@ function Box ()
         box.col = this.col;
         box.quadrant = this.quadrant;
         box.index = this.index;
-        box.value = this.value;
+		box.value = this.value;
+		box.isSetBySolver = this.isSetBySolver;
 
         box.getBoxWithIndexDelegate = null;
 
@@ -53,7 +54,7 @@ function Box ()
         return box;
 	}
 
-	this.SetValue = function ( value ) 
+	this.SetValue = function ( value, isSetBySolver ) 
 	{
 		if ( this.IsThisBoxFilled() ) 
 			alert("Something went wrong");
@@ -64,6 +65,7 @@ function Box ()
 	
 		this.RemoveAllPossibilities();	// since there is a value attached to this box now.
 		this.value = value;
+		this.isSetBySolver = isSetBySolver;
 
 		this.RemovePossibilitiesForOthers ( this.value );
 	}
@@ -162,7 +164,7 @@ function Solver ()
 				{
 					if ( data[r][c] > 0 )
 					{
-						this.boxes[r][c].SetValue ( data[r][c] );
+						this.boxes[r][c].SetValue ( data[r][c], false );
 						//PrintPotential();
 					}
 				}
@@ -176,10 +178,10 @@ function Solver ()
 		this.isSolvingCompleted = false;
 	}
 
-	this.SetValue = function ( r, c, value ) 
+	this.SetValue = function ( r, c, value, isSetBySolver ) 
 	{
 		//QDebug.Assert ( !boxes[r][c].IsThisBoxFilled() );
-		this.boxes[r][c].SetValue(value);
+		this.boxes[r][c].SetValue(value, isSetBySolver);
 	}
 
 	this.GetPossibleSolutions = function ( r, c ) 
@@ -259,7 +261,7 @@ function Solver ()
 					if ( this.boxes[r][c].possibleSolutions.length == 1 && !this.boxes[r][c].IsThisBoxFilled() )
 					{
 						found = true;
-						this.boxes[r][c].SetValue ( this.boxes[r][c].possibleSolutions[0] );
+						this.boxes[r][c].SetValue ( this.boxes[r][c].possibleSolutions[0], true );
 					}
 				}
 			}
@@ -500,7 +502,7 @@ function NestedSolver ()
 	this.Init2  = function( initialSolver, r, c, value, nestedLevelId) 
 	{
 		this.solver = initialSolver;
-		this.solver.SetValue ( r, c, value );
+		this.solver.SetValue ( r, c, value, true );
 		this.nestedLevelID = nestedLevelId;
 		console.log("in Init this.nestedLevelID:" + this.nestedLevelID);
 	}
@@ -525,7 +527,7 @@ function NestedSolver ()
 				{
 					this.runSolver = false;
 					console.log("Error occured. reverting from " + this.nestedLevelID);
-					this.OnFailedCallback();
+					this.OnFailedCallback( "Error in data!");
 				}
 			}
 			else if ( this.solver.IsSolvedFully() )
@@ -563,7 +565,7 @@ function NestedSolver ()
 									this.deepSearchLevel + " " + (this.deepSearchLevel < eDeepSearch.HARD ? "true" : "false") );
 						
 						this.runSolver = false;
-						this.OnFailedCallback();
+						this.OnFailedCallback( "Could not complete. Is the data accurate ?");
 					}
 					else 
 					{
@@ -576,7 +578,8 @@ function NestedSolver ()
 								console.log("For Simple search. reverting from " + this.nestedLevelID );
 
 								this.runSolver = false;
-								this.OnFailedCallback();
+								this.OnFailedCallback( "Could not complete. Is the data accurate ?");
+
 								return;
 							}
 

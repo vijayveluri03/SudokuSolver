@@ -50,7 +50,7 @@ function Box ( )
     this.Update  = function ( )
     {
         if ( this.upwardForceCooldown > 0 )
-            this.upwardForceCooldown -= dt/1000;
+            this.upwardForceCooldown -= dt;
     }
 
     this.SetUpwardForce = function ( force ) 

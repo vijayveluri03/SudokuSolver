@@ -85,6 +85,7 @@ var MyApplicationInstance =
         dt = now - lastUpdate;
         dt = dt * gameSpeed;
         lastUpdate = now;
+        dt = dt / 1000; 
 
         renderer.ClearScreen(); // clearing the screen 
         OnKeyPress(touchVar);   // sending touch events to the game 
@@ -92,7 +93,7 @@ var MyApplicationInstance =
         // updating and rendering the states
         if ( MyApplicationInstance.StateManager != null )
         {
-            MyApplicationInstance.StateManager.Update();
+            MyApplicationInstance.StateManager.Update( dt );
             MyApplicationInstance.StateManager.Render();
         }
     }
@@ -134,6 +135,20 @@ var renderer =
         }
         else
             this.context.fillRect(box.x - box.w/2, box.y - box.h/2, box.w, box.h);
+    },
+    RenderText : function ( textUi )
+    {
+        this.context.fillStyle = textUi.fontColor;
+        this.context.font = textUi.fontType;
+
+        if ( this.InvertYEnabled() )
+        {
+            this.context.fillText( textUi.text, textUi.x * scaleUp, (this.Height() - (textUi.y - textUi.fontHeightInPX/2)) * scaleUp );
+        }
+        else
+            this.context.fillText( textUi.text, textUi.x, (textUi.y - textUi.fontHeightInPX/2));
+
+        this.context.textAlign="center"; 
     },
     RenderButton : function ( button )
     {
@@ -188,19 +203,24 @@ function SudokuUI ()
     {
         //alert ( r + " " + c  );
         this.callback ( r, c );
+
     }
 
     this.GetButtonFor  = function ( r, c )
     {
         return this.ui.buttons[ ConvertRowColToIndex ( r, c ) ];
     }
-    this.SetValueFor = function ( r, c, number )
+    this.SetValueFor = function ( r, c, number, isSetBySolver )
     {
         if ( number <= 0 )
             number = " ";
         //alert ( r + " " +  c + " " + this.ui.buttons.length);
         let button = this.GetButtonFor ( r, c );
         button.SetText ( number );
+        if ( isSetBySolver )
+            button.SetFontColor ( "#420DAB");
+        else 
+            button.SetFontColor ( "#000000");
     }
 
     this.Initialize = function ( callback )
@@ -245,6 +265,9 @@ function SudokuUI ()
         
 
         currentY = startY - ( paddingHeight + height / 2 ) ;
+
+        // these buttons are directly going intto this.ui.buttons. so we can access from there
+        // we dontt need to cache them here.
         for ( let r = 0; r < MAX_ROWS_COLS; r ++  )
         {
             currentX = startX + paddingWidth + width / 2;

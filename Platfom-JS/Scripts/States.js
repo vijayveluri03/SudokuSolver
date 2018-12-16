@@ -10,7 +10,7 @@ function StartMenuState ()
 
         this.newPuzzleButton = this.ui.CreateButton ();
         this.newPuzzleButton.Init ( MyApplicationInstance.GameWidth()/2, 
-                                300, 
+                                400, 
                                 200, 50,
 
                                 (20 * scaleUp) + "px Verdana", "NEW PUZZLE",
@@ -23,6 +23,16 @@ function StartMenuState ()
                                     //alert("On Start clicked"); 
                                     MyApplicationInstance.StateManager.PushState ( new SelectDifficultyState() );
                                 },
+
+                                true );
+
+        this.instructionsTxt = this.ui.CreateText ();
+        this.instructionsTxt.Init ( MyApplicationInstance.GameWidth()/2, 
+                                    360,
+                                    400, 100,
+
+                                (15 * scaleUp) + "px Verdana", "Solve it by yourself !",
+                                "purple", 15,
 
                                 true );
 
@@ -43,12 +53,21 @@ function StartMenuState ()
                                 },
 
                                 true );
+        this.instructionsTxt2 = this.ui.CreateText ();
+        this.instructionsTxt2.Init ( MyApplicationInstance.GameWidth()/2, 
+                                    160,
+                                    400, 100,
+
+                                (15 * scaleUp) + "px Verdana", "Get help if you are stuck !",
+                                "purple", 15,
+
+                                true );
     }
     this.End = function () 
     {
         
     }
-    this.Update = function ()
+    this.Update = function ( dt )
     {
     }
 
@@ -144,7 +163,7 @@ function SelectDifficultyState ()
     {
         
     }
-    this.Update = function ()
+    this.Update = function ( dt )
     {
     }
 
@@ -193,24 +212,14 @@ function SolverState ()
         this.ui = new UI();
         this.ui.Init ( true );
 
-        this.statusMessage = this.ui.CreateButton ();
+        this.statusMessageTxt = this.ui.CreateText ();
 
-        this.statusMessage.Init ( MyApplicationInstance.GameWidth()/2, 
+        this.statusMessageTxt.Init ( MyApplicationInstance.GameWidth()/2, 
                                  30, 
                                 150, 30,
 
                                 (15 * scaleUp) + "px Verdana", "",
                                 "grey", 15,
-
-                                "#f1f1f1", "red", "purple", 
-
-                                function() 
-                                { 
-                                    this.Solve ();
-                                    //alert("On Start clicked"); 
-                                    //MyApplicationInstance.StateManager.PushState ( new SelectDifficultyState() );
-                                }.bind(this),
-
                                 true );
 
         this.solveButton = this.ui.CreateButton ();
@@ -256,7 +265,7 @@ function SolverState ()
         {
             for ( i = 0; i < MAX_ROWS_COLS * MAX_ROWS_COLS; i++ )
             {
-                this.sudokuUI.SetValueFor ( ConvertIndexToRow ( i ), ConvertIndexToCol ( i ), this.initialValues[i]);
+                this.sudokuUI.SetValueFor ( ConvertIndexToRow ( i ), ConvertIndexToCol ( i ), this.initialValues[i], false);
             }   
         }
     }
@@ -265,7 +274,7 @@ function SolverState ()
 
     }
 
-    this.Update = function ()
+    this.Update = function ( dt )
     {
         if ( this.nestedSolver != null )
 			this.nestedSolver.Update();
@@ -303,23 +312,30 @@ function SolverState ()
 
     this.OnSudukoBoardBlockSelected = function ( r, c )
     {
+        if ( !this.AreChangesAccepted() )
+            return;
+
         this.selectedR = r;
         this.selectedC = c;
         this.numberSelectionUI.Show( null );
         //alert ( r );
-    }
+    }.bind(this)
     this.OnNumberSelected = function ( number )
     {
-        //alert ( number );
+        if ( !this.AreChangesAccepted() )
+            alert ( "Changes are disabled. Then how are we here!");
         this.numberSelectionUI.Hide ( );
-        this.sudokuUI.SetValueFor ( this.selectedR, this.selectedC, number );
+        this.sudokuUI.SetValueFor ( this.selectedR, this.selectedC, number, false );
         //alert ( r );
+    }.bind(this)
+    this.AreChangesAccepted = function () 
+    {
+        return !this.solveButton.IsDisabled();
     }
-
     this.Solve = function ()
     {
         this.solveButton.SetDisabled ( true );
-        this.statusMessage.SetText ("Solving .");
+        this.statusMessageTxt.SetText ("working on a solution ...");
 
         let values = [];
         for ( let r = 0; r < MAX_ROWS_COLS; r++ )
@@ -329,11 +345,9 @@ function SolverState ()
             {
                 let val = this.sudokuUI.GetButtonFor ( r, c ).text;
                 if ( typeof val == "number")
-                {
                     values[r].push  ( val );
-                }
                 else 
-                values[r].push  ( -1 );
+                    values[r].push  ( -1 );
             }
         }
         let solver = new Solver ();
@@ -344,43 +358,52 @@ function SolverState ()
         this.nestedSolver.Solve( this.OnSolveCompleted, this.OnSolveFailed );
     }
 
-    this.PutResultOnSudokuBoard = function ()
+    this.PutResultOnBoard = function ()
     {
         if ( this.nestedSolver.solver != null )
         {
             //
             {
-                if ( this.nestedSolver.solver.IsSolvedFully())
-                    this.statusMessage.SetText ("Solved");
-                else 
-                    this.statusMessage.SetText("Could not be solved. Error on the board may be ?");
-
                 for ( r = 0; r < MAX_ROWS_COLS; r ++ )
                 {
                     for ( c = 0; c < MAX_ROWS_COLS; c++ )
                     {
-                        this.sudokuUI.SetValueFor ( r, c, this.nestedSolver.solver.boxes[r][c].value );
+                        if ( this.nestedSolver.solver.boxes[r][c].isSetBySolver )
+                            this.sudokuUI.SetValueFor ( r, c, this.nestedSolver.solver.boxes[r][c].value, true );
                     }
                 }
             }
         }
     }
+
+    this.PutStatusOnBoard = function () 
+    {
+        this.statusMessageTxt.SetText( this.statusMessage );
+    }
     this.OnSolveCompleted = function ()
     {
-        console.log("Completed");
+        this.statusMessage = "Solved";
         //alert( "completed" );
 
-        this.PutResultOnSudokuBoard();
+        this.PutResultOnBoard();
+        this.PutStatusOnBoard();
+
         this.nestedSolver = null;
+
+        this.solveButton.SetDisabled ( false );
 
     }.bind( this )
 
-    this.OnSolveFailed = function () 
+    this.OnSolveFailed = function ( message ) 
     {
+        this.statusMessage = message;
         console.log("failed..");
         //alert ( "failed ");
-        this.PutResultOnSudokuBoard();
+        //this.PutResultOnBoard();
+        this.PutStatusOnBoard();
         this.nestedSolver = null;
+
+        this.solveButton.SetDisabled ( false );
         
     }.bind ( this )
 
@@ -436,33 +459,18 @@ function SolverState ()
         }
     }
 
+    this.statusMessage = "";
     this.selectedR = -1;
     this.selectedC = -1;
     this.solveButton = null;
-    this.statusMessage = null;
+    this.statusMessageTxt = null;
 
 
     this.initialValues = 
 
             //null;
                 
-            // Easy
-			// [
-			// 	1,0,0,0,6,3,0,0,9,
-			// 	9,0,0,4,2,0,7,0,0,
-			// 	0,4,7,1,0,0,3,8,0,
-
-			// 	0,5,6,0,0,0,0,0,0,
-			// 	0,2,0,0,0,0,0,9,0,
-			// 	0,0,0,0,0,0,6,7,0,
-
-			// 	0,3,4,0,0,9,2,1,0,
-			// 	0,0,1,0,3,6,0,0,7,
-			// 	5,0,0,8,1,0,0,0,3 
-            // ];
-
-
-			
+            ////Easy
 			[
 				1,0,0,0,6,3,0,0,9,
 				9,0,0,4,2,0,7,0,0,
@@ -472,10 +480,26 @@ function SolverState ()
 				0,2,0,0,0,0,0,9,0,
 				0,0,0,0,0,0,6,7,0,
 
-				0,3,4,0,0,9,0,0,0,
-				0,0,1,0,3,6,0,0,0,
-				5,0,0,8,1,0,0,0,0 
+				0,3,4,0,0,9,2,1,0,
+				0,0,1,0,3,6,0,0,7,
+				5,0,0,8,1,0,0,0,3 
             ];
+
+
+			
+			// [
+			// 	1,0,0,0,6,3,0,0,9,
+			// 	9,0,0,4,2,0,7,0,0,
+			// 	0,4,7,1,0,0,3,8,0,
+
+			// 	0,5,6,0,0,0,0,0,0,
+			// 	0,2,0,0,0,0,0,9,0,
+			// 	0,0,0,0,0,0,6,7,0,
+
+			// 	0,3,4,0,0,9,0,0,0,
+			// 	0,0,1,0,3,6,0,0,0,
+			// 	5,0,0,8,1,0,0,0,0 
+            // ];
 
 			//moderate difficulty
 			
